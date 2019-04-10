@@ -1,114 +1,124 @@
-<!Doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <link href="style.css" rel="stylesheet" type="text/css"/>
-  <meta charset="UTF-8" />
-  <meta name="viewpoint" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title>KU Bus Stops</title>
-  <link rel="stylesheet"
-  href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-  integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+ <head>
+   <link href="style.css" rel="stylesheet" type="text/css"/>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+   <title>KU Bus Stops</title>
+   <link rel="stylesheet"    href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
      crossorigin="anonymous"
    />
 </head>
 
 <body>
-<center>
-<!--Second Data Property: numStops bound to input-->
-<div class="container" id="bus">
-  <input v-model.number = "numStops" type = "number">
-  <!--Computed Property: filteredStops-->
-  <!--Display numStops of filteredStops-->
-  <div v-for="item in filteredStops">
-    <div class="card" style="width: 30rem;">
-      <div class="card-body">
-        <!--Name as card title, Description as card text-->
-        <h3 class="card-title">{{ item.name }}</h3>
-        <h4 class="card-text">{{ item.description }}
-        <br><br>
-        </h4>
-        <p class="card-subtitle mb-2 text-muted">
-            Distance: {{Math.sqrt((((currentLatitude-item['lat'])**2)+((currentLongitude-item['lon'])**2))*69).toFixed(3)}} miles
-        </p>
-      </div>
+  <center>
+    <div class="jumbotron">
+        <h1 class="display-4">Bus Stops, Man!</h1>
+        <p class="lead">Find your nearest bus stops in Lawrence.</p>
     </div>
-  </div>
-</div>
+    <div class="container">
+        <div id="app">
+        <label for="stops"># of Stops:</label>
+        <input name="stops" v-model.number="numStops" type="number" min="0"><br>
 
-  <script
-    src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous">
-  </script>
+        <div v-for="itemStop in finalStops" class="card" style="width: 28rem;">
+            <div class="card-body">
+                <h3 class="card-title">{{itemStop.name}}</h3>
+                <p class="card-text">{{itemStop.description}}</p>
+                <p class="card-text">Distance: {{itemStop.distance}} Miles</p>
+            </div>
+        </div>
+    </div>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
     integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-    crossorigin="anonymous">
-  </script>
+    crossorigin="anonymous"
+  ></script>
   <script
     src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
     integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-    crossorigin="anonymous">
-  </script>
-  <script
-  src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js">
-  </script>
+    crossorigin="anonymous"
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 
-<!--First Data Property: Stops-->
-<script>
-  Vue.component('stops', {
-    props: ['stop'],
-    template: '<li>{{ stop.text }}</li>'
-  })
-</script>
+  <script>
+    function toRadians(degrees)
+    {
+        let rad = degrees * (Math.PI/180);
+        return rad;
+    }
+    // Distance Function taken from source on internet
+    // Link: https://www.movable-type.co.uk/scripts/latlong.html
+    function distance(lat1, lon1, lat2, lon2) {
+        let la1 = toRadians(lat1);
+        let la2 = toRadians(lat2);
 
-<!--Computed Data Property: Filtered Stops-->
-<script>
-  var bus = new Vue({
-    el: '#bus',
+        let deltLat = toRadians(lat2-lat1);
+        let deltLon = toRadians(lon2-lon1);
+
+        let x = Math.sin(deltLat/2) * Math.sin(deltLat/2) +  Math.cos(la1) * Math.cos(la2) * Math.sin(deltLon/2) * Math.sin(deltLon/2);
+        let y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+        let z = 6371 * y; //Equation for Kiometers
+        z = z * 0.621371; //Convert to Miles
+        return z.toFixed(2);
+    }
+  const app = new Vue({
+    el: '#app',
     data: {
-      busStops: [],
+      stops: [],
       numStops: 10,
-      currentLatitude: 0,
-      currentLongitude: 0
+      stopLat: 0,
+      stopLong: 0,
+    },
+    created: function () {
+        fetch('https://utils.pauliankline.com/stops.json')
+        .then(function(response) {
+            return response.json();
+        })
+
+        .then(function(myJson) {
+            for (let itemStop in myJson) {
+                app.stops.push(myJson[itemStop]);
+            }
+            })
+
+        .then(function() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                app.stopLat = position.coords.latitude;
+                app.stopLong = position.coords.longitude;
+            });
+            if(app.stopLat != 0) {
+                for (let itemStop in app.stops) {
+                        let d = distance(app.stopLat, app.stopLong, app.stops[itemStop].lat, app.stops[itemStop].lon);
+                        app.stops[itemStop].distance = d;
+                }
+            }
+            }
+            //Funciton to watch for position movement
+            navigator.geolocation.watchPosition(function(position) {
+            app.stopLat = position.coords.latitude;
+            app.stopLong = position.coords.longitude;
+            for (let itemStop in app.stops) {
+                let d = distance(app.stopLat, app.stopLong, app.stops[itemStop].lat, app.stops[itemStop].lon);
+                app.stops[itemStop].distance = d;
+            }
+          });
+        });
     },
 
     computed: {
-      filteredStops: function() {
-        this.busStops.sort((a, b) => (distance(this.currentLatitude, this.currentLongitude, a['lat'], a['lon']) > distance(this.currentLatitude, this.currentLongitude, b['lat'], b['lon']) ) ? 1 : -1);
+        finalStops: function () {
+            this.stops.sort(function(a, b){return a.distance - b.distance});
 
-        return this.busStops.slice(0, this.numStops)
-      }
-    }
+            return this.stops.slice(0,this.numStops);
+        }
+  }
   })
-</script>
-
-<!--Fetch Web API for Bus Stops-->
-<script>
-  fetch('https://utils.pauliankline.com/stops.json')
-    .then(function(response) {
-      return response.json();
-    })
-    .then(function(myJson) {
-      bus.busStops = myJson;
-    })
-
-    if ("geolocation" in navigator) {
-       console.log("Geolocation is online.");
-     }
-     else {
-       app.message = "Cannot connect to current location.";
-     }
-     //Watch for movement
-      var watchID = navigator.geolocation.watchPosition(function(position) {
-      bus.currentLatitude = position.coords.latitude;
-      bus.currentLongitude = position.coords.longitude;
-    });
-    function distance(lat1, long1, lat2, long2)
-    {
-      //Pythagorean HAHA!
-      return Math.sqrt(((lat1-lat2)**2)+((long1-long2)**2));
-    }
-</script>
+  </script>
 </center>
 </body>
+</html>
